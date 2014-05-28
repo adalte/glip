@@ -18,28 +18,28 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-class GitCommitStamp
-{
-    public $name;
-    public $email;
-    public $time;
-    public $offset;
 
-    public function unserialize($data)
+
+class Glip_GitBlob extends Glip_GitObject
+{
+    /**
+     * @brief The data contained in this blob.
+     */
+    public $data = null;
+
+    public function __construct($repo)
     {
-	assert(preg_match('/^(.+?)\s+<(.+?)>\s+(\d+)\s+([+-]\d{4})$/', $data, $m));
-	$this->name = $m[1];
-	$this->email = $m[2];
-	$this->time = intval($m[3]);
-	$off = intval($m[4]);
-	$this->offset = ($off/100) * 3600 + ($off%100) * 60;
+        parent::__construct($repo, Glip_Git::OBJ_BLOB);
     }
 
-    public function serialize()
+    public function _unserialize($data)
     {
-	if ($this->offset%60)
-	    throw new Exception('cannot serialize sub-minute timezone offset');
-	return sprintf('%s <%s> %d %+05d', $this->name, $this->email, $this->time, ($this->offset/3600)*100 + ($this->offset/60)%60);
+        $this->data = $data;
+    }
+
+    public function _serialize()
+    {
+        return $this->data;
     }
 }
 

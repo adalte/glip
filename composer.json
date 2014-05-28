@@ -1,0 +1,30 @@
+{
+    "name": "sarkian/glip",
+    "version": "0.1.3",
+    "type": "library",
+    "description": "Git library for PHP",
+    "keywords": ["git"],
+    "homepage": "http://fimml.at/projects/glip",
+    "license": "GNU GPLv2",
+    "authors": [
+        {
+            "name": "Patrik Fimml",
+            "email": "patrik@fimml.at",
+            "homepage": "http://fimml.at/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.2"
+    },
+    "autoload": {
+        "psr-0": {
+            "Glip_": "lib/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1.3-dev"
+        }
+    }
+}
