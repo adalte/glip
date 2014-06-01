@@ -18,9 +18,9 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-
-class Glip_GitBlob extends Glip_GitObject
+class GitBlob extends GitObject
 {
     /**
      * @brief The data contained in this blob.
@@ -29,7 +29,7 @@ class Glip_GitBlob extends Glip_GitObject
 
     public function __construct($repo)
     {
-        parent::__construct($repo, Glip_Git::OBJ_BLOB);
+        parent::__construct($repo, Git::OBJ_BLOB);
     }
 
     public function _unserialize($data)

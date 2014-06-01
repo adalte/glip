@@ -22,8 +22,9 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-final class Glip_Binary
+final class Binary
 {
 
     static public function uint16($str, $pos = 0)
@@ -41,18 +42,18 @@ final class Glip_Binary
     {
         $r = array();
         for($i = 0; $i < $n; $i++, $pos += 4)
-            $r[] = Glip_Binary::uint32($str, $pos);
+            $r[] = Binary::uint32($str, $pos);
         return $r;
     }
 
     static public function fuint32($f)
     {
-        return Glip_Binary::uint32(fread($f, 4));
+        return Binary::uint32(fread($f, 4));
     }
 
     static public function nfuint32($n, $f)
     {
-        return Glip_Binary::nuint32($n, fread($f, 4 * $n));
+        return Binary::nuint32($n, fread($f, 4 * $n));
     }
 
     static public function git_varint($str, &$pos = 0)

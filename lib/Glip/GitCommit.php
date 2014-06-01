@@ -18,9 +18,9 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-
-class Glip_GitCommit extends Glip_GitObject
+class GitCommit extends GitObject
 {
     /**
      * @var string The tree referenced by this commit, as binary sha1
@@ -35,12 +35,12 @@ class Glip_GitCommit extends Glip_GitObject
     public $parents;
 
     /**
-     * @var Glip_GitCommitStamp The author of this commit.
+     * @var GitCommitStamp The author of this commit.
      */
     public $author;
 
     /**
-     * @var Glip_GitCommitStamp The committer of this commit.
+     * @var GitCommitStamp The committer of this commit.
      */
     public $committer;
 
@@ -58,7 +58,7 @@ class Glip_GitCommit extends Glip_GitObject
 
     public function __construct($repo)
     {
-        parent::__construct($repo, Glip_Git::OBJ_COMMIT);
+        parent::__construct($repo, Git::OBJ_COMMIT);
     }
 
     public function _unserialize($data)
@@ -74,11 +74,11 @@ class Glip_GitCommit extends Glip_GitObject
                 $meta[$parts[0]][] = $parts[1];
         }
 
-        $this->tree = Glip_Binary::sha1_bin($meta['tree'][0]);
-        $this->parents = array_map(['Glip_Binary', 'sha1_bin'], $meta['parent']);
-        $this->author = new Glip_GitCommitStamp;
+        $this->tree = Binary::sha1_bin($meta['tree'][0]);
+        $this->parents = array_map(['\Glip\Binary', 'sha1_bin'], $meta['parent']);
+        $this->author = new GitCommitStamp;
         $this->author->unserialize($meta['author'][0]);
-        $this->committer = new Glip_GitCommitStamp;
+        $this->committer = new GitCommitStamp;
         $this->committer->unserialize($meta['committer'][0]);
 
         $this->summary = array_shift($lines);
@@ -90,9 +90,9 @@ class Glip_GitCommit extends Glip_GitObject
     public function _serialize()
     {
         $s = '';
-        $s .= sprintf("tree %s\n", Glip_Binary::sha1_hex($this->tree));
+        $s .= sprintf("tree %s\n", Binary::sha1_hex($this->tree));
         foreach($this->parents as $parent)
-            $s .= sprintf("parent %s\n", Glip_Binary::sha1_hex($parent));
+            $s .= sprintf("parent %s\n", Binary::sha1_hex($parent));
         $s .= sprintf("author %s\n", $this->author->serialize());
         $s .= sprintf("committer %s\n", $this->committer->serialize());
         $s .= "\n".$this->summary."\n".$this->detail;
@@ -101,7 +101,7 @@ class Glip_GitCommit extends Glip_GitObject
 
     /**
      * @brief Get commit history in topological order.
-     * @returns Glip_GitCommit[]
+     * @returns GitCommit[]
      */
     public function getHistory()
     {
@@ -138,7 +138,7 @@ class Glip_GitCommit extends Glip_GitObject
 
     /**
      * @brief Get the tree referenced by this commit.
-     * @returns Glip_GitTree referenced by this commit.
+     * @returns GitTree referenced by this commit.
      */
     public function getTree()
     {
@@ -157,13 +157,13 @@ class Glip_GitCommit extends Glip_GitObject
     }
 
     /**
-     * @param Glip_GitCommit $a
-     * @param Glip_GitCommit $b
+     * @param GitCommit $a
+     * @param GitCommit $b
      * @return array
      */
     static public function treeDiff($a, $b)
     {
-        return Glip_GitTree::treeDiff($a ? $a->getTree() : null, $b ? $b->getTree() : null);
+        return GitTree::treeDiff($a ? $a->getTree() : null, $b ? $b->getTree() : null);
     }
 }
 

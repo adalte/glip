@@ -18,8 +18,9 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-class Glip_Git
+class Git
 {
     public $dir;
 
@@ -34,25 +35,25 @@ class Glip_Git
     static public function getTypeID($name)
     {
         if($name == 'commit')
-            return Glip_Git::OBJ_COMMIT;
+            return Git::OBJ_COMMIT;
         else if($name == 'tree')
-            return Glip_Git::OBJ_TREE;
+            return Git::OBJ_TREE;
         else if($name == 'blob')
-            return Glip_Git::OBJ_BLOB;
+            return Git::OBJ_BLOB;
         else if($name == 'tag')
-            return Glip_Git::OBJ_TAG;
+            return Git::OBJ_TAG;
         throw new \Exception(sprintf('unknown type name: %s', $name));
     }
 
     static public function getTypeName($type)
     {
-        if($type == Glip_Git::OBJ_COMMIT)
+        if($type == Git::OBJ_COMMIT)
             return 'commit';
-        else if($type == Glip_Git::OBJ_TREE)
+        else if($type == Git::OBJ_TREE)
             return 'tree';
-        else if($type == Glip_Git::OBJ_BLOB)
+        else if($type == Git::OBJ_BLOB)
             return 'blob';
-        else if($type == Glip_Git::OBJ_TAG)
+        else if($type == Git::OBJ_TAG)
             return 'tag';
         throw new \Exception(sprintf('no string representation of type %d', $type));
     }
@@ -68,7 +69,7 @@ class Glip_Git
         if($dh !== false) {
             while(($entry = readdir($dh)) !== false)
                 if(preg_match('#^pack-([0-9a-fA-F]{40})\.idx$#', $entry, $m))
-                    $this->packs[] = Glip_Binary::sha1_bin($m[1]);
+                    $this->packs[] = Binary::sha1_bin($m[1]);
             closedir($dh);
         }
     }
@@ -86,11 +87,11 @@ class Glip_Git
         if($object_name{0} == "\x00") {
             $cur = 0;
             fseek($f, $offset);
-            $after = Glip_Binary::fuint32($f);
+            $after = Binary::fuint32($f);
         } else {
             fseek($f, $offset + (ord($object_name{0}) - 1) * 4);
-            $cur = Glip_Binary::fuint32($f);
-            $after = Glip_Binary::fuint32($f);
+            $cur = Binary::fuint32($f);
+            $after = Binary::fuint32($f);
         }
 
         return array($cur, $after);
@@ -107,7 +108,7 @@ class Glip_Git
     protected function findPackedObject($object_name)
     {
         foreach($this->packs as $pack_name) {
-            $index = fopen(sprintf('%s/objects/pack/pack-%s.idx', $this->dir, Glip_Binary::sha1_hex($pack_name)), 'rb');
+            $index = fopen(sprintf('%s/objects/pack/pack-%s.idx', $this->dir, Binary::sha1_hex($pack_name)), 'rb');
             flock($index, LOCK_SH);
 
             /* check version */
@@ -126,7 +127,7 @@ class Glip_Git
                  */
                 fseek($index, 4 * 256 + 24 * $cur);
                 for($i = 0; $i < $n; $i++) {
-                    $off = Glip_Binary::fuint32($index);
+                    $off = Binary::fuint32($index);
                     $name = fread($index, 20);
                     if($name == $object_name) {
                         /* we found the object */
@@ -136,7 +137,7 @@ class Glip_Git
                 }
             } else {
                 /* version 2+ */
-                $version = Glip_Binary::fuint32($index);
+                $version = Binary::fuint32($index);
                 if($version == 2) {
                     list($cur, $after) = $this->readFanout($index, $object_name, 8);
 
@@ -144,7 +145,7 @@ class Glip_Git
                         continue;
 
                     fseek($index, 8 + 4 * 255);
-                    $total_objects = Glip_Binary::fuint32($index);
+                    $total_objects = Binary::fuint32($index);
 
                     /* look up sha1 */
                     fseek($index, 8 + 4 * 256 + 20 * $cur);
@@ -157,7 +158,7 @@ class Glip_Git
                         continue;
 
                     fseek($index, 8 + 4 * 256 + 24 * $total_objects + 4 * $i);
-                    $off = Glip_Binary::fuint32($index);
+                    $off = Binary::fuint32($index);
                     if($off & 0x80000000) {
                         /* packfile > 2 GB. Gee, you really want to handle this
                          * much data with PHP?
@@ -188,9 +189,9 @@ class Glip_Git
         $pos = 0;
 
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $base_size = Glip_Binary::git_varint($delta, $pos);
+        $base_size = Binary::git_varint($delta, $pos);
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $result_size = Glip_Binary::git_varint($delta, $pos);
+        $result_size = Binary::git_varint($delta, $pos);
 
         $r = '';
         while($pos < strlen($delta)) {
@@ -248,7 +249,7 @@ class Glip_Git
         }
 
         /* compare sha1_file.c:1608 unpack_entry */
-        if($type == Glip_Git::OBJ_COMMIT || $type == Glip_Git::OBJ_TREE || $type == Glip_Git::OBJ_BLOB || $type == Glip_Git::OBJ_TAG) {
+        if($type == Git::OBJ_COMMIT || $type == Git::OBJ_TREE || $type == Git::OBJ_BLOB || $type == Git::OBJ_TAG) {
             /*
              * We don't know the actual size of the compressed
              * data, so we'll assume it's less than
@@ -258,7 +259,7 @@ class Glip_Git
              * consistently
              */
             $data = gzuncompress(fread($pack, $size + 512), $size);
-        } else if($type == Glip_Git::OBJ_OFS_DELTA) {
+        } else if($type == Git::OBJ_OFS_DELTA) {
             /* 20 = maximum varint length for offset */
             $buf = fread($pack, $size + 512 + 20);
 
@@ -283,7 +284,7 @@ class Glip_Git
             list($type, $base) = $this->unpackObject($pack, $base_offset);
 
             $data = $this->applyDelta($delta, $base);
-        } else if($type == Glip_Git::OBJ_REF_DELTA) {
+        } else if($type == Git::OBJ_REF_DELTA) {
             $base_name = fread($pack, 20);
             list($type, $base) = $this->getRawObject($base_name);
 
@@ -308,35 +309,35 @@ class Glip_Git
     protected function getRawObject($object_name)
     {
         static $cache = array();
-        /* FIXME allow limiting the cache to a certain size */
+        // FIXME allow limiting the cache to a certain size
 
         if(isset($cache[$object_name]))
             return $cache[$object_name];
-        $sha1 = Glip_Binary::sha1_hex($object_name);
+        $sha1 = Binary::sha1_hex($object_name);
         $path = sprintf('%s/objects/%s/%s', $this->dir, substr($sha1, 0, 2), substr($sha1, 2));
         if(file_exists($path)) {
             list($hdr, $object_data) = explode("\0", gzuncompress(file_get_contents($path)), 2);
 
             $object_size = 0;
             sscanf($hdr, "%s %d", $type, $object_size);
-            $object_type = Glip_Git::getTypeID($type);
+            $object_type = Git::getTypeID($type);
             $r = array($object_type, $object_data);
         } else if(($x = $this->findPackedObject($object_name))) {
             list($pack_name, $object_offset) = $x;
 
-            $pack = fopen(sprintf('%s/objects/pack/pack-%s.pack', $this->dir, Glip_Binary::sha1_hex($pack_name)), 'rb');
+            $pack = fopen(sprintf('%s/objects/pack/pack-%s.pack', $this->dir, Binary::sha1_hex($pack_name)), 'rb');
             flock($pack, LOCK_SH);
 
             /* check magic and version */
             $magic = fread($pack, 4);
-            $version = Glip_Binary::fuint32($pack);
+            $version = Binary::fuint32($pack);
             if($magic != 'PACK' || $version != 2)
                 throw new \Exception('unsupported pack format');
 
             $r = $this->unpackObject($pack, $object_offset);
             fclose($pack);
         } else
-            throw new \Exception(sprintf('object not found: %s', Glip_Binary::sha1_hex($object_name)));
+            throw new \Exception(sprintf('object not found: %s', Binary::sha1_hex($object_name)));
         $cache[$object_name] = $r;
         return $r;
     }
@@ -344,12 +345,12 @@ class Glip_Git
     /**
      * @brief Fetch an object in its PHP representation.
      * @param $name (string) name of the object (binary SHA1)
-     * @returns Glip_GitObject|Glip_GitCommit|Glip_GitBlob|Glip_GitTree the object
+     * @returns GitObject|GitCommit|GitBlob|GitTree the object
      */
     public function getObject($name)
     {
         list($type, $data) = $this->getRawObject($name);
-        $object = Glip_GitObject::create($this, $type);
+        $object = GitObject::create($this, $type);
         $object->unserialize($data);
         assert($name == $object->getName());
         return $object;
@@ -367,7 +368,7 @@ class Glip_Git
         $subpath = sprintf('refs/heads/%s', $branch);
         $path = sprintf('%s/%s', $this->dir, $subpath);
         if(file_exists($path))
-            return Glip_Binary::sha1_bin(file_get_contents($path));
+            return Binary::sha1_bin(file_get_contents($path));
         $path = sprintf('%s/packed-refs', $this->dir);
         if(file_exists($path)) {
             $head = null;
@@ -378,7 +379,7 @@ class Glip_Git
                     continue;
                 $parts = explode(' ', trim($line));
                 if(count($parts) == 2 && $parts[1] == $subpath)
-                    $head = Glip_Binary::sha1_bin($parts[0]);
+                    $head = Binary::sha1_bin($parts[0]);
             }
             fclose($f);
             if($head !== null)

@@ -18,14 +18,15 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-class Glip_GitTree extends Glip_GitObject
+class GitTree extends GitObject
 {
     public $nodes = array();
 
     public function __construct($repo)
     {
-        parent::__construct($repo, Glip_Git::OBJ_TREE);
+        parent::__construct($repo, Git::OBJ_TREE);
     }
 
     public function _unserialize($data)
@@ -67,8 +68,8 @@ class Glip_GitTree extends Glip_GitObject
      * @brief Find the tree or blob at a certain path.
      * @em foo/bar where @em foo is a file).
      * @param string $path The path to look for, relative to this tree.
-     * @throws Glip_GitTreeInvalidPathError
-     * @returns Glip_GitTree|Glip_GitBlob at the specified path, or NULL if none
+     * @throws GitTreeInvalidPathError
+     * @returns GitTree|GitBlob at the specified path, or NULL if none
      * could be found.
      */
     public function find($path)
@@ -93,8 +94,8 @@ class Glip_GitTree extends Glip_GitObject
             return $cur;
         else {
             $cur = $this->repo->getObject($cur);
-            if(!($cur instanceof Glip_GitTree))
-                throw new Glip_GitTreeInvalidPathError;
+            if(!($cur instanceof GitTree))
+                throw new GitTreeInvalidPathError;
             return $cur->find($path);
         }
     }
@@ -127,16 +128,36 @@ class Glip_GitTree extends Glip_GitObject
         return $r;
     }
 
+	public function getFiles() {
+		$q = $this->nodes;
+		while (!empty($q)) {
+			$node = array_shift($q);
+			if($node->is_dir) {
+				if($node->is_submodule) {
+					yield $node->name . ':submodule' => $node->object;
+				} else {
+					$subtree = $this->repo->getObject($node->object);
+					foreach ($subtree->nodes as $subnode) {
+						$subnode->path = ((isset($node->path)) ? $node->path . '/' : '') . $node->name;
+						array_unshift($q, $subnode);
+					}
+				}
+			} else {
+				yield $node->path . '/' . $node->name => $node->object;
+			}
+		}
+	}
+
     /**
      * @brief Updates a node in this tree.
      * Missing directories in the path will be created automatically.
      * @param string $path Path to the node, relative to this tree.
-     * @param Glip_Git $mode mode to set the node to. 0 if the node shall be
+     * @param Git $mode mode to set the node to. 0 if the node shall be
      * cleared, i.e. the tree or blob shall be removed from this path.
      * @param string $object Glip_Binary SHA-1 hash of the object that shall be
      * placed at the given path.
-     * @throws Glip_GitTreeInvalidPathError
-     * @returns Glip_GitObject[] An array of Glip_GitObject%s that were newly
+     * @throws GitTreeInvalidPathError
+     * @returns GitObject[] An array of Glip_GitObject%s that were newly
      * created while updating the specified node. Those need to be written to
      * the repository together with the modified tree.
      */
@@ -164,11 +185,11 @@ class Glip_GitTree extends Glip_GitObject
             if(isset($this->nodes[$name])) {
                 $node = $this->nodes[$name];
                 if(!$node->is_dir)
-                    throw new Glip_GitTreeInvalidPathError;
+                    throw new GitTreeInvalidPathError;
                 $subtree = clone $this->repo->getObject($node->object);
             } else {
                 /* create new tree */
-                $subtree = new Glip_GitTree($this->repo);
+                $subtree = new GitTree($this->repo);
 
                 $node = new \stdClass;
                 $node->mode = 040000;
@@ -195,8 +216,8 @@ class Glip_GitTree extends Glip_GitObject
     const TREEDIFF_CHANGED = 0x03;
 
     /**
-     * @param Glip_GitTree $a_tree
-     * @param Glip_GitTree $b_tree
+     * @param GitTree $a_tree
+     * @param GitTree $b_tree
      * @return array
      */
     static public function treeDiff($a_tree, $b_tree)

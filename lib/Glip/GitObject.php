@@ -18,11 +18,12 @@
  * along with glip.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+namespace Glip;
 
-class Glip_GitObject
+class GitObject
 {
     /**
-     * @var Glip_Git The repository this object belongs to.
+     * @var Git The repository this object belongs to.
      */
     public $repo;
     protected $type;
@@ -49,19 +50,19 @@ class Glip_GitObject
 
     /**
      * @brief Create a Glip_GitObject of the specified type.
-     * @param Glip_Git $repo The repository the object belongs to.
+     * @param Git $repo The repository the object belongs to.
      * @param int $type Object type (one of Glip_Git::OBJ_COMMIT, * Glip_Git::OBJ_TREE, Glip_Git::OBJ_BLOB).
      * @throws \Exception
-     * @returns Glip_GitObject A new Glip_GitCommit, Glip_GitTree or Glip_GitBlob object respectively.
+     * @returns GitObject A new Glip_GitCommit, Glip_GitTree or Glip_GitBlob object respectively.
      */
     static public function create($repo, $type)
     {
-        if($type == Glip_Git::OBJ_COMMIT)
-            return new Glip_GitCommit($repo);
-        if($type == Glip_Git::OBJ_TREE)
-            return new Glip_GitTree($repo);
-        if($type == Glip_Git::OBJ_BLOB)
-            return new Glip_GitBlob($repo);
+        if($type == Git::OBJ_COMMIT)
+            return new GitCommit($repo);
+        if($type == Git::OBJ_TREE)
+            return new GitTree($repo);
+        if($type == Git::OBJ_BLOB)
+            return new GitBlob($repo);
         throw new \Exception(sprintf('unhandled object type %d', $type));
     }
 
@@ -75,7 +76,7 @@ class Glip_GitObject
     protected function hash($data)
     {
         $hash = hash_init('sha1');
-        hash_update($hash, Glip_Git::getTypeName($this->type));
+        hash_update($hash, Git::getTypeName($this->type));
         hash_update($hash, ' ');
         hash_update($hash, strlen($data));
         hash_update($hash, "\0");
@@ -135,7 +136,7 @@ class Glip_GitObject
      */
     public function write()
     {
-        $sha1 = Glip_Binary::sha1_hex($this->name);
+        $sha1 = Binary::sha1_hex($this->name);
         $path = sprintf('%s/objects/%s/%s', $this->repo->dir, substr($sha1, 0, 2), substr($sha1, 2));
         if(file_exists($path))
             return false;
@@ -146,7 +147,7 @@ class Glip_GitObject
         flock($f, LOCK_EX);
         ftruncate($f, 0);
         $data = $this->serialize();
-        $data = Glip_Git::getTypeName($this->type).' '.strlen($data)."\0".$data;
+        $data = Git::getTypeName($this->type).' '.strlen($data)."\0".$data;
         fwrite($f, gzcompress($data));
         fclose($f);
         return true;
