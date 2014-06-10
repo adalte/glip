@@ -1,5 +1,5 @@
 {
-    "name": "yamek/glip",
+    "name": "sarkian/glip",
     "version": "0.1.3",
     "type": "library",
     "description": "Git library for PHP",
