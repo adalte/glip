@@ -15,6 +15,7 @@ class GitStreamWrapper {
 	 * @return array
 	 */
 	protected static function getPathParts($path) {
+		$path = preg_replace("#[\\\\]#", '/', $path);
 		if (preg_match('#^(\w+)://(.*\.git/)([^/]+)/(.*)$#Dsiu', $path, $matches)) {
 			$parts = [
 				'scheme'        => $matches[1],
@@ -28,6 +29,8 @@ class GitStreamWrapper {
 			; // TODO throw exception
 	}
 
+	/** @var string */
+	protected $dirPath;
 	/** @var Git */
 	protected $repository;
 	/** @var GitObject */
@@ -50,7 +53,7 @@ class GitStreamWrapper {
 	 * @return bool
 	 */
 	function dir_opendir($path, /** @noinspection PhpUnusedParameterInspection */ $options) {
-		$pathParts = self::getPathParts($path);
+		$pathParts = self::getPathParts($this->dirPath = $path);
 		$repository = $this->repository = new Git($pathParts['repository']);
 		$this->branch = $repository->getObject($repository->getTip($pathParts['branch']));
 		$this->branchTree = $repository->getObject($this->branch->tree);
@@ -126,7 +129,7 @@ class GitStreamWrapper {
 		return [
 			0           => 0, // dev device number
 			1           => 0, // inode number *
-			2           => 0, // inode protection mode
+			2           => 33206, // inode protection mode
 			3           => 0, // number of links
 			4           => 0, // userid of owner *
 			5           => 0, // groupid of owner *
@@ -140,7 +143,7 @@ class GitStreamWrapper {
 
 			'dev'       => 0, // device number
 			'ino'       => 0, // inode number *
-			'mode'      => 0, // inode protection mode
+			'mode'      => 33206, // inode protection mode
 			'nlink'     => 0, // number of links
 			'uid'       => 0, // userid of owner *
 			'gid'       => 0, // groupid of owner *
@@ -188,6 +191,41 @@ class GitStreamWrapper {
 	function stream_metadata($path, $option, $value) {
 		// TODO Throw exception
 		return false;
+	}
+
+	/**
+	 * @return array
+	 */
+	function url_stat() {
+		return [
+			0           => 0, // dev device number
+			1           => 0, // inode number *
+			2           => 33206, // inode protection mode
+			3           => 0, // number of links
+			4           => 0, // userid of owner *
+			5           => 0, // groupid of owner *
+			6           => 0, // device type, if inode device
+			7           => 0, // size in bytes
+			8           => 0, // time of last access (Unix timestamp)
+			9           => 0, // time of last modification (Unix timestamp)
+			10          => 0, // time of last inode change (Unix timestamp)
+			11          => -1, // blocksize of filesystem IO **
+			12          => -1, // number of 512-byte blocks allocated **
+
+			'dev'       => 0, // device number
+			'ino'       => 0, // inode number *
+			'mode'      => 33206, // inode protection mode
+			'nlink'     => 0, // number of links
+			'uid'       => 0, // userid of owner *
+			'gid'       => 0, // groupid of owner *
+			'rdev'      => 0, // device type, if inode device
+			'size'      => 0, // size in bytes
+			'atime'     => 0, // time of last access (Unix timestamp)
+			'mtime'     => 0, // time of last modification (Unix timestamp)
+			'ctime'     => 0, // time of last inode change (Unix timestamp)
+			'blksize'   => -1, // blocksize of filesystem IO **
+			'blocks'    => -1, // number of 512-byte blocks allocated **
+		];
 	}
 
 }
