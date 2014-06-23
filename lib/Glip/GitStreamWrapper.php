@@ -2,6 +2,7 @@
 
 namespace Glip;
 
+use ArrayIterator;
 use Generator;
 
 /**
@@ -16,7 +17,7 @@ class GitStreamWrapper {
 	 */
 	protected static function getPathParts($path) {
 		$path = preg_replace("#[\\\\]#", '/', $path);
-		if (preg_match('#^(\w+)://(.*\.git/)([^/]+)/(.*)$#Dsiu', $path, $matches)) {
+		if (preg_match('#^(\w+)://(.*\.git/)(?:([^/]+)/)?(.*)?$#Dsiu', $path, $matches)) {
 			$parts = [
 				'scheme'        => $matches[1],
 				'repository'    => $matches[2],
@@ -27,6 +28,18 @@ class GitStreamWrapper {
 			return $parts;
 		} else
 			; // TODO throw exception
+	}
+
+	/**
+	 * @param string $protocol
+	 * @return bool
+	 */
+	public static function register($protocol = 'gitr') {
+		$registeredWrappers = stream_get_wrappers();
+		if (!in_array($protocol, $registeredWrappers)) {
+			stream_wrapper_register($protocol, GitStreamWrapper::class);
+		}
+		return true;
 	}
 
 	/** @var string */
@@ -55,9 +68,11 @@ class GitStreamWrapper {
 	function dir_opendir($path, /** @noinspection PhpUnusedParameterInspection */ $options) {
 		$pathParts = self::getPathParts($this->dirPath = $path);
 		$repository = $this->repository = new Git($pathParts['repository']);
-		$this->branch = $repository->getObject($repository->getTip($pathParts['branch']));
-		$this->branchTree = $repository->getObject($this->branch->tree);
-		$this->pathTree = $repository->getObject($this->branchTree->find($pathParts['path']));
+		if (!empty($pathParts['branch'])) {
+			$this->branch = $repository->getObject($repository->getTip($pathParts['branch']));
+			$this->branchTree = $repository->getObject($this->branch->tree);
+			$this->pathTree = $repository->getObject($this->branchTree->find($pathParts['path']));
+		}
 		return true;
 	}
 
@@ -78,13 +93,21 @@ class GitStreamWrapper {
 	 */
 	function dir_readdir() {
 		if (is_null($this->filesListGenerator)) {
-			$files = $this->filesListGenerator = $this->pathTree->getFiles();
+			if (!is_null($this->pathTree)) {
+				$files = $this->filesListGenerator = $this->pathTree->getFiles();
+			} else {
+				$files = $this->filesListGenerator = new ArrayIterator($this->repository->getBranches());
+			}
 		} else {
 			$files = $this->filesListGenerator;
 		}
 		if ($files->valid()) {
-			$filePath = $files->key();
 			$files->next();
+			if (is_null($this->pathTree)) {
+				$filePath = $files->current();
+			} else {
+				$filePath = $files->key();
+			}
 		} else {
 			$filePath = false;
 		}

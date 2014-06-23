@@ -256,3 +256,4 @@ class GitTree extends GitObject
 		return $changes;
 	}
 }
+
